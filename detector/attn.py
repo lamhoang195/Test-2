@@ -69,7 +69,7 @@ class AttentionDetector():
             _, _, attention_maps, _, input_range, _ = self.model.inference(
                 self.instruction, prompt, max_output_tokens=5
             )
-            score = self._calculate_weighted_score(attention_maps, input_range, decay)
+            score = self._calculate_weighted_score(attention_maps, input_range, decay, verbose=False)
             if score <= 0.5:  # Temporary threshold
                 correct += 1
             total += 1
@@ -78,29 +78,44 @@ class AttentionDetector():
             _, _, attention_maps, _, input_range, _ = self.model.inference(
                 self.instruction, prompt, max_output_tokens=5
             )
-            score = self._calculate_weighted_score(attention_maps, input_range, decay)
+            score = self._calculate_weighted_score(attention_maps, input_range, decay, verbose=False)
             if score > 0.5:  # Temporary threshold
                 correct += 1
             total += 1
         
         return correct / total if total > 0 else 0
     
-    def _calculate_weighted_score(self, attention_maps, input_range, decay):
+    def _calculate_weighted_score(self, attention_maps, input_range, decay, verbose=False):
         """Tính score với exponential decay weights"""
         attention_maps = attention_maps[:5]  # Chỉ lấy 5 tokens
         scores = []
         
-        for attention_map in attention_maps:
+        for i, attention_map in enumerate(attention_maps):
             heatmap = process_attn(attention_map, input_range, self.attn_func)
             score = calc_attn_score(heatmap, self.important_heads)
             scores.append(score)
+            
+            if verbose:
+                print(f"Token {i+1}: attention_score = {score:.4f}")
         
         if len(scores) > 0:
             # Exponential decay weights: [1.0, decay, decay^2, decay^3, decay^4]
             weights = [decay ** i for i in range(len(scores))]
+            
+            if verbose:
+                print(f"\nWeights (decay={decay:.1f}): {[f'{w:.3f}' for w in weights]}")
+                print("Weighted calculation:")
+                for i, (score, weight) in enumerate(zip(scores, weights)):
+                    print(f"  Token {i+1}: {score:.4f} × {weight:.3f} = {score * weight:.4f}")
+            
             weighted_sum = sum(score * weight for score, weight in zip(scores, weights))
             total_weight = sum(weights)
-            return weighted_sum / total_weight
+            final_score = weighted_sum / total_weight
+            
+            if verbose:
+                print(f"Final score: {weighted_sum:.4f} / {total_weight:.3f} = {final_score:.4f}")
+                
+            return final_score
         return 0
 
     def attn2score(self, attention_maps, input_range):
@@ -114,7 +129,8 @@ class AttentionDetector():
             return sum(scores) if len(scores) > 0 else 0
         
         elif self.use_token == "first_5":
-            return self._calculate_weighted_score(attention_maps, input_range, self.optimal_decay)
+            print("\n🔍 Analyzing attention for 5 tokens:")
+            return self._calculate_weighted_score(attention_maps, input_range, self.optimal_decay, verbose=True)
         
         else:
             # Fallback: use all tokens with equal weights
