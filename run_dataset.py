@@ -62,7 +62,7 @@ def main(args):
         generated_text = result[1]['generated_text']
         generation_time = result[1]['generation_time']
         
-        print(f"Generated Output (max 128 tokens):")
+        print(f"Generated Output (max 64 tokens):")
         print(f'"{generated_text}"')
         print("-" * 80)
         print(f"Detection Result: {'Injection Detected' if detect else 'Normal'}")

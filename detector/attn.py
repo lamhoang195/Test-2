@@ -145,9 +145,9 @@ class AttentionDetector():
         # Measure generation time
         start_time = time.time()
         
-        # Luôn sinh 128 tokens để có output đầy đủ, chỉ attention analysis dùng 5 token đầu
+        # Luôn sinh 64 tokens để có output đầy đủ, chỉ attention analysis dùng 5 token đầu
         generated_text, _, attention_maps, _, input_range, _ = self.model.inference(
-            self.instruction, data_prompt, max_output_tokens=128)
+            self.instruction, data_prompt, max_output_tokens=64)
         
         end_time = time.time()
         generation_time = end_time - start_time
@@ -165,13 +165,13 @@ class AttentionDetector():
         start_time = time.time()
         
         # Sử dụng inference_fast nếu có, nếu không fallback về inference
-        # Luôn sinh 128 tokens để có output đầy đủ, chỉ attention analysis dùng 5 token đầu
+        # Luôn sinh 64 tokens để có output đầy đủ, chỉ attention analysis dùng 5 token đầu
         if hasattr(self.model, 'inference_fast'):
             generated_text, _, attention_maps, _, input_range, _ = self.model.inference_fast(
-                self.instruction, data_prompt, max_output_tokens=128)
+                self.instruction, data_prompt, max_output_tokens=64)
         else:
             generated_text, _, attention_maps, _, input_range, _ = self.model.inference(
-                self.instruction, data_prompt, max_output_tokens=128)
+                self.instruction, data_prompt, max_output_tokens=64)
         
         end_time = time.time()
         generation_time = end_time - start_time
