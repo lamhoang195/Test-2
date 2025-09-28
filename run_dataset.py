@@ -34,18 +34,41 @@ def main(args):
     dataset = load_dataset(args.dataset_name)
     test_data = dataset['test']
     
-    detector = AttentionDetector(model)
+    # Limit samples if specified
+    if args.max_samples is not None:
+        test_data = test_data.select(range(min(args.max_samples, len(test_data))))
+        print(f"Processing {len(test_data)} samples (limited by --max_samples)")
+    else:
+        print(f"Processing all {len(test_data)} samples")
+    
+    detector = AttentionDetector(model, use_token="first_5")
     print("===================")
     print(f"Using detector: {detector.name}")
+    print(f"Using 5-token analysis with exponential weights")
 
     labels, predictions, scores = [], [], []
     logs = []
 
-    for data in tqdm(test_data):
+    for i, data in enumerate(tqdm(test_data)):
+        print(f"\n{'='*80}")
+        print(f"Sample {i+1}/{len(test_data)}")
+        print(f"Input: {data['text']}")
+        print(f"True Label: {'Injection' if data['label'] == 1 else 'Normal'}")
+        print("-" * 80)
+        
         result = detector.detect(data['text'])
         detect = result[0]
         score = result[1]['focus_score']
-
+        generated_text = result[1]['generated_text']
+        generation_time = result[1]['generation_time']
+        
+        print(f"Generated Output (max 128 tokens):")
+        print(f'"{generated_text}"')
+        print("-" * 80)
+        print(f"Detection Result: {'Injection Detected' if detect else 'Normal'}")
+        print(f"Focus Score: {score:.6f}")
+        print(f"Generation Time: {generation_time:.2f}s")
+        
         labels.append(data['label'])
         predictions.append(detect)
         scores.append(1-score)
@@ -53,7 +76,10 @@ def main(args):
         result_data = {
             "text": data['text'],
             "label": data['label'],
-            "result": result
+            "generated_text": generated_text,
+            "focus_score": score,
+            "detection": detect,
+            "generation_time": generation_time
         }
 
         logs.append(result_data)
@@ -95,6 +121,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", type=str, default="deepset/prompt-injections", 
                         help="Path to the dataset.")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--max_samples", type=int, default=None, 
+                        help="Maximum number of samples to process (None for all)")
     
     args = parser.parse_args()
 
