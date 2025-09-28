@@ -113,7 +113,7 @@ class AttentionModel(Model):
                     (attention_mask, torch.tensor([[1]], device=input_ids.device)), dim=-1)
 
                 # ✅ Lưu attention của 5 token đầu tiên (để phân tích prompt injection tốt hơn)
-                if i < 5:  # 5 token đầu tiên thay vì chỉ 1
+                if i < 5:  # 5 token đầu tiên để phân tích attention
                     attention_map = [attention.detach().cpu().half()
                                      for attention in output['attentions']]
                     attention_map = [torch.nan_to_num(
@@ -174,7 +174,7 @@ class AttentionModel(Model):
 
         with torch.no_grad():
             for i in range(max_tokens):
-                # ✅ Tính attention cho 5 token đầu tiên
+                # ✅ Tính attention cho 5 token đầu tiên, sau đó không cần attention nữa
                 output_attentions = (i < 5)
                 
                 output = self.model(
